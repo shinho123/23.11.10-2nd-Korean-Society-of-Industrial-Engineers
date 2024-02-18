@@ -78,6 +78,9 @@ def contents_exteaction(list1):
         
     return contents, len(contents)
 ```
+ * 결과 예시
+![image](https://github.com/shinho123/23.11.10-2nd-Korean-Society-of-Industrial-Engineers/assets/105840783/74874222-6aa9-4c89-a619-cef5c856dd25)
+
 
 ### _Contents_List_Return_Search_
   * 추출된 목차리스트 중 리뷰 검색이 가능 키워드 리스트 반환 함수
@@ -121,8 +124,10 @@ def contents_review_search(document):
 
     return sorted(list(set(possible_keyword)))
 ```
+ * 결과 예시
+![image](https://github.com/shinho123/23.11.10-2nd-Korean-Society-of-Industrial-Engineers/assets/105840783/905a2c17-a70f-4cda-83da-ca1197db55de)
 
-
+ 
     
 ### _WAN282X1GB Amazon review data keyword frequency_
   * 아마존 홈페이지에 세탁기(모델명 : WAN282X1GB) 리뷰 데이터를 전처리 후 키워드 분석 수행
@@ -335,6 +340,10 @@ def Crwaling_data_score_vis(keyword):
     return plt.show()
 ```
 
+* 결과 예시
+
+![image](https://github.com/shinho123/23.11.10-2nd-Korean-Society-of-Industrial-Engineers/assets/105840783/e5628379-04f5-46ba-871f-026e80cee2c6)
+
 ### _Review All Search_
   * 메뉴얼 키워드가 리뷰 데이터 키워드에 포함시 제목, 내용, 날짜, 평점 조회
 ```python
@@ -353,6 +362,11 @@ def Review_All_Search(Keyword):
     
     return title, sentence, date, star, len(date)
 ```
+
+* 결과 예시
+![image](https://github.com/shinho123/23.11.10-2nd-Korean-Society-of-Industrial-Engineers/assets/105840783/2c76a757-c716-4651-920c-752a89263295)
+
+
 
 ### _Image Extraction Text <-> Review_
   * 메뉴얼 이미지에서 추출된 텍스트와 리뷰 데이터가 존재하는지 확인하는 함수
