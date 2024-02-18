@@ -19,6 +19,111 @@
 
 ## Technical role
 
+### _Crawling Data Preprocessing_
+  * 크롤링 데이터 전처리 함수
+```python
+def clean_text(texts): 
+    corpus = []
+    
+    for i in tqdm(range(0, len(texts))):
+        
+        body = texts[i]
+        
+        body = re.sub('[^a-zA-Z]', ' ', body) # 특수문자 제거 
+        body = body.lower().split() # 대문자를 소문자로 변경, 문장을 단어 단위로 구분
+        
+        df['clean_text'][i] = body
+        
+        stops = stopwords.words('english')
+        stops.append('machine')
+        stops.append('product')
+        stops.append('bosch')
+        
+        no_stops = [word for word in body if not word in stops] # 불용어 제거
+        df['stopwords_after'][i] = no_stops
+        
+        tokens_pos = nltk.pos_tag(df['stopwords_after'][i]) # pos tagging (품사 태깅)
+        df['pos_tag'][i] = tokens_pos
+        
+        NN_words = [] # 명사만 추출
+        for word, pos in tokens_pos:
+            if 'NN' in pos:
+                NN_words.append(word)
+                df['NN'][i] = NN_words
+                
+        wlem = nltk.WordNetLemmatizer() # Lemmatization(원형(lemma) 찾기) # nltk에서 제공되는 WordNetLemmatizer을 이용
+        lemmatized_words = []
+        
+        for word in NN_words:
+            new_word = wlem.lemmatize(word)
+            lemmatized_words.append(new_word)
+            df['lemmatization'][i] = lemmatized_words
+        
+        corpus.append(no_stops) 
+        
+    return corpus
+```
+
+### _Contents_List_Return_
+  * 메뉴얼 이미지 → 목차 이미지 텍스트로 추출 → 리스트로 반환 함수
+```python
+def contents_exteaction(list1):
+    
+    pattern = re.compile("n\d{1,2}\s{1}[A-Z][a-z\t\n\r\f\v\s]+[a-z\t\n\r\f\v\s]+\W[a-z\t\n\r\f\v\s]*")
+    contents = pattern.findall(str(document))[:-6]
+
+    for idx, st in enumerate(contents):
+        contents[idx] = re.sub("n[0-9]{1,2}[\s]", "", contents[idx])
+        contents[idx] = contents[idx].replace("\\n", " ").replace(".", "").strip()
+        
+    return contents, len(contents)
+```
+
+### _Contents_List_Return_Search_
+  * 추출된 목차리스트 중 리뷰 검색이 가능 키워드 리스트 반환 함수
+```python
+def contents_review_search(document):
+    
+    stops = stopwords.words('english') # 라이브러리에서 제공하는 불용어 
+    stops_plus = ['tion', 'ance', 'tem', 'con', 'machine', 'product', 'bosch', 'ines', 
+                  'page', 'Start','bosch', 'www', 'zips', 'tions', 'wmzpw', 'wmz'] # 사용자 지정 불용어 설정
+    
+    pattern = re.compile("n\d{1,2}\s{1}[A-Z][a-z\t\n\r\f\v\s]+[a-z\t\n\r\f\v\s]+\W[a-z\t\n\r\f\v\s]*")
+    contents = pattern.findall(str(document))[:-6]
+
+    for idx, st in enumerate(contents):
+        contents[idx] = re.sub("n[0-9]{1,2}[\s]", "", contents[idx])
+        contents[idx] = contents[idx].replace("\\n", " ").replace(".", "").strip()
+    
+    contents_word = []
+
+    for word in contents:
+        contents_word.append(word.lower().split(' '))
+
+    contents_word = sum(contents_word, [])
+
+    contents_word = list(set(contents_word))
+
+    lem = nltk.WordNetLemmatizer()
+    contents_word_lemma = [lem.lemmatize(word) for word in contents_word]
+
+    contents_word_re = [word for word in contents_word if (not word in stops)]
+
+
+    possible_keyword = []
+
+    for idx1, st1 in enumerate(df['lemmatization']):
+        for idx2, st2 in enumerate(st1):
+            if st2 in contents_word_re:
+                possible_keyword.append(st2)
+            else:
+                continue
+
+    return sorted(list(set(possible_keyword)))
+```
+
+
+    
 ### _WAN282X1GB Amazon review data keyword frequency_
   * 아마존 홈페이지에 세탁기(모델명 : WAN282X1GB) 리뷰 데이터를 전처리 후 키워드 분석 수행
  
@@ -200,4 +305,99 @@ def Manual_Keyword_Search(list2):
     # lemma_collection_pre = sorted(list(set(lemma_collection_pre))) 
     
     return(list(set(word_coll)))
+```
+
+### _Crawling data score vis_
+  * 세탁기(모델명 : WAN282X1GB) 메뉴얼에 존재하는 키워드가 리뷰 데이터 키워드에 포함시 평점 시각화(Pie chart)함수
+```python
+def Crwaling_data_score_vis(keyword):
+    search_keyword = Manual_Keyword_Search(document)
+    date, title, review, star = [], [], [], []
+    
+    for idx, st in enumerate(df['lemmatization']):
+
+        if keyword in st:
+            date.append(df['Date'][idx])
+            title.append(df['Title'][idx])
+            review.append(df['Body'][idx])
+            star.append(df['Star'][idx])
+
+        else:
+            continue
+            
+    review_collection = pd.DataFrame({'date' : date, 'title' : title, 'review' : review, 'star' : star})
+    collection = review_collection.sort_values('date')
+    collection_score = collection['star'].value_counts().to_frame('score')
+    collection_score['portion'] = round(collection_score['score'] / collection_score['score'].sum(), 2)
+    wedgeprops={'width': 0.7, 'edgecolor': 'w', 'linewidth': 5}
+    plt.pie(collection_score['portion'], labels = collection_score.index, autopct='%.1f%%', startangle=260, counterclock=False, wedgeprops=wedgeprops)
+
+    return plt.show()
+```
+
+### _Review All Search_
+  * 메뉴얼 키워드가 리뷰 데이터 키워드에 포함시 제목, 내용, 날짜, 평점 조회
+```python
+def Review_All_Search(Keyword):
+    
+    title, sentence, date, star = [], [], [], []
+
+    for idx1, st1 in enumerate(df['lemmatization']):
+        if Keyword in st1:
+            title.append(df['Title'][idx1])
+            sentence.append(df['Body'][idx1])
+            date.append(df['Date'][idx1])
+            star.append(df['Star'][idx1])
+        else:
+            continue
+    
+    return title, sentence, date, star, len(date)
+```
+
+### _Image Extraction Text <-> Review_
+  * 메뉴얼 이미지에서 추출된 텍스트와 리뷰 데이터가 존재하는지 확인하는 함수
+```python
+def Image_compare_review():
+    
+    results = []
+    path = os.getcwd() # get a current file path
+    file_list = os.listdir(path) # pull the file list from 'path' folder
+    file_list_py = [file for file in file_list if file.endswith('.png') or file.endswith('jpeg')]
+    
+    for path in file_list_py:
+        image = Image.open(path)
+        result = pytesseract.image_to_string(image, lang='eng') # bosch don need kor
+        arr = result.split('\n') 
+        result = '\n'.join(arr)
+        results.append(result)
+        
+    for idx, st in enumerate(results):
+        results[idx] = re.sub(r"[^a-zA-Z0-9]", " ", results[idx])
+        results[idx] = re.sub(r"[0-9]", " ", results[idx])
+        results[idx] = re.sub(' +', ' ', results[idx])
+        results[idx] = nltk.word_tokenize(results[idx])    
+    
+    key_word_results = []
+
+    for word in results:
+        if len(word) != 0:
+            for idx, st in enumerate(word):
+                key_word_results.append(st.lower())
+        else:
+            continue
+    
+    key_word_results = list(set(key_word_results))
+    
+    key_word_results = [word for word in key_word_results if len(word) > 2]
+    
+    count = 0
+
+    for idx1, st1 in enumerate(df['lemmatization']):
+        for idx2, st2 in enumerate(st1):
+            if st2 in key_word_results:
+                count += 1
+            else:
+                continue
+        
+    return key_word_results, count
 ``` 
